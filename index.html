@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AeroCoach - Pelatih Lari & Kardio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+            },
+            energy: '#10b981', // green accent
+            burn: '#f97316',   // orange accent
+            night: '#0f172a',
+            surface: '#1e293b'
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* iOS Momentum Scrolling & Touch improvements */
+    body {
+      -webkit-font-smoothing: antialiased;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Circular Progress Transition */
+    .progress-ring__circle {
+      transition: stroke-dashoffset 0.35s linear;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    /* Pulse effect */
+    @keyframes subtle-pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.03); opacity: 1; }
+    }
+    .animate-subtle-pulse {
+      animation: subtle-pulse 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 flex justify-center items-center min-h-screen p-0 sm:p-4 font-sans antialiased selection:bg-blue-500 selection:text-white">
+
+  <!-- Mobile Viewport Shell -->
+  <div class="w-full max-w-md h-[100dvh] sm:h-[844px] bg-slate-900 sm:rounded-[42px] shadow-2xl flex flex-col overflow-hidden relative border border-slate-800">
+    
+    <!-- iOS Dynamic Island / Speaker Notch Simulation on Desktop -->
+    <div class="hidden sm:flex justify-center pt-3 pb-1 z-30">
+      <div class="w-28 h-4 bg-black rounded-full flex items-center justify-end px-3">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      </div>
+    </div>
+
+    <!-- Top App Header -->
+    <header class="px-5 pt-3 pb-2 flex items-center justify-between z-20 border-b border-slate-800/60 bg-slate-900/90 backdrop-blur-md">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <i class="fa-solid fa-person-running text-white text-sm"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+            AeroCoach <span class="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full font-medium">PRO</span>
+          </h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="voice-toggle-btn" onclick="toggleVoiceCoach()" title="Suara Coach" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-700 transition">
+          <i id="voice-icon" class="fa-solid fa-volume-high text-xs text-blue-400"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Screens Container -->
+    <main class="flex-1 overflow-y-auto custom-scrollbar relative p-4 pb-24">
+      
+      <!-- ================= 1. WORKOUT PROGRAMS VIEW ================= -->
+      <section id="view-programs" class="space-y-4">
+        <!-- Banner Hari Ini -->
+        <div class="p-4 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xl relative overflow-hidden">
+          <div class="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl"></div>
+          <span class="text-[11px] font-semibold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-md inline-block mb-1">Rekomendasi Pemula</span>
+          <h2 class="text-xl font-bold leading-tight">Mulai Olahraga Hari Ini!</h2>
+          <p class="text-xs text-blue-100 mt-1 mb-3">Kombinasi lari dan kardio membakar kalori optimal & melatih stamina paru-paru.</p>
+          <button onclick="startSpecificWorkout(0)" class="px-4 py-2 bg-white text-blue-700 font-bold text-xs rounded-xl shadow hover:bg-blue-50 active:scale-95 transition flex items-center gap-2">
+            <i class="fa-solid fa-play text-[10px]"></i> Mulai Rutinitas Utama
+          </button>
+        </div>
+
+        <h3 class="text-sm font-semibold text-slate-400 tracking-wide uppercase px-1">Pilih Program Latihan</h3>
+
+        <!-- Program Cards -->
+        <div id="programs-list" class="space-y-3">
+          <!-- Dynamically Injected by JS -->
+        </div>
+      </section>
+
+      <!-- ================= 2. ACTIVE COACH / WORKOUT VIEW ================= -->
+      <section id="view-active-workout" class="hidden flex-col items-center justify-between min-h-full py-2">
+        
+        <!-- Header Info -->
+        <div class="w-full text-center">
+          <span id="active-program-name" class="text-xs font-semibold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full">Interval Lari & Kardio</span>
+          <p id="active-phase-step" class="text-xs text-slate-400 mt-1.5 font-medium">Langkah 1 dari 10</p>
+        </div>
+
+        <!-- Big Countdown Circle & Visual Phase -->
+        <div class="relative flex items-center justify-center my-4">
+          <svg class="w-64 h-64">
+            <circle class="text-slate-800" stroke-width="12" stroke="currentColor" fill="transparent" r="110" cx="128" cy="128" />
+            <circle id="timer-progress" class="text-blue-500 progress-ring__circle" stroke-width="12" stroke-linecap="round" stroke="currentColor" fill="transparent" r="110" cx="128" cy="128" />
+          </svg>
+          <div class="absolute flex flex-col items-center text-center px-4">
+            <span id="timer-label" class="text-5xl font-extrabold tracking-tighter text-white">00:00</span>
+            <span id="timer-status" class="text-sm font-bold text-emerald-400 mt-1 uppercase tracking-wider">PEMANASAN</span>
+            <span id="timer-activity" class="text-xs text-slate-300 mt-0.5 max-w-[170px] truncate">Jalan Cepat Ringan</span>
+          </div>
+        </div>
+
+        <!-- Coach Tip / Guidance Speech Bubble -->
+        <div class="w-full bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3 flex items-start gap-3 my-2 backdrop-blur-sm">
+          <div class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex-shrink-0 flex items-center justify-center">
+            <i class="fa-solid fa-bullhorn text-xs"></i>
+          </div>
+          <div>
+            <span class="text-[11px] font-bold text-blue-400">Instruksi Coach</span>
+            <p id="coach-instruction" class="text-xs text-slate-200 mt-0.5 leading-snug">Jaga postur tegak, ayunkan tangan berirama, dan tarik napas dalam lewat hidung.</p>
+          </div>
+        </div>
+
+        <!-- Live Metrics Mini Bar -->
+        <div class="grid grid-cols-3 gap-2 w-full my-2">
+          <div class="bg-slate-800/50 p-2.5 rounded-xl border border-slate-800 text-center">
+            <span class="text-[10px] text-slate-400 block">Total Waktu</span>
+            <span id="live-total-time" class="text-sm font-bold text-slate-200">00:00</span>
+          </div>
+          <div class="bg-slate-800/50 p-2.5 rounded-xl border border-slate-800 text-center">
+            <span class="text-[10px] text-slate-400 block">Perkiraan Kalori</span>
+            <span id="live-calories" class="text-sm font-bold text-amber-400">0 kcal</span>
+          </div>
+          <div class="bg-slate-800/50 p-2.5 rounded-xl border border-slate-800 text-center">
+            <span class="text-[10px] text-slate-400 block">Sisa Putaran</span>
+            <span id="live-remaining-intervals" class="text-sm font-bold text-blue-400">0</span>
+          </div>
+        </div>
+
+        <!-- Controls: Play, Pause, Skip, Quit -->
+        <div class="flex items-center justify-center gap-4 w-full mt-3">
+          <button onclick="stopWorkoutPrompt()" class="w-12 h-12 rounded-full bg-slate-800 text-rose-400 hover:bg-rose-500/20 flex items-center justify-center transition border border-slate-700 active:scale-95" title="Berhenti">
+            <i class="fa-solid fa-stop text-sm"></i>
+          </button>
+          
+          <button id="btn-play-pause" onclick="togglePauseResume()" class="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-xl shadow-blue-500/30 flex items-center justify-center transition active:scale-90" title="Mulai / Jeda">
+            <i id="play-pause-icon" class="fa-solid fa-pause text-xl"></i>
+          </button>
+
+          <button onclick="skipStep()" class="w-12 h-12 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center justify-center transition border border-slate-700 active:scale-95" title="Lewati Langkah">
+            <i class="fa-solid fa-forward-step text-sm"></i>
+          </button>
+        </div>
+
+      </section>
+
+      <!-- ================= 3. TRACKER & HISTORY VIEW ================= -->
+      <section id="view-stats" class="hidden space-y-4">
+        <h3 class="text-base font-bold text-white px-1">Statistik & Riwayat Latihan</h3>
+
+        <!-- Lifetime Summary Stats -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-slate-800/70 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-fire"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-medium">Total Kalori</span>
+              <span id="stat-total-cals" class="text-lg font-bold text-white">0 kcal</span>
+            </div>
+          </div>
+          <div class="bg-slate-800/70 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-stopwatch"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-medium">Total Durasi</span>
+              <span id="stat-total-mins" class="text-lg font-bold text-white">0 mnt</span>
+            </div>
+          </div>
+          <div class="bg-slate-800/70 border border-slate-800 p-3.5 rounded-2xl flex items-center gap-3 col-span-2">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-medal"></i>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-medium">Sesi Berhasil Selesai</span>
+              <span id="stat-total-workouts" class="text-lg font-bold text-white">0 Sesi</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Records -->
+        <div class="pt-2">
+          <div class="flex items-center justify-between mb-2 px-1">
+            <h4 class="text-xs font-semibold uppercase text-slate-400">Catatan Aktivitas</h4>
+            <button onclick="clearHistory()" class="text-[11px] text-rose-400 hover:underline">Hapus Semua</button>
+          </div>
+
+          <div id="history-container" class="space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 4. TIPS & COACHING VIEW ================= -->
+      <section id="view-tips" class="hidden space-y-3">
+        <h3 class="text-base font-bold text-white px-1">Panduan & Tips Pelatih</h3>
+        
+        <div class="space-y-3" id="tips-container">
+          <!-- Dynamically rendered or static rich cards -->
+          <div class="p-4 rounded-2xl bg-slate-800/70 border border-slate-800 space-y-1.5">
+            <div class="flex items-center gap-2 text-emerald-400 font-semibold text-sm">
+              <i class="fa-solid fa-lungs"></i>
+              <h4>Pola Pernapasan Saat Lari & Kardio</h4>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Terapkan pola ritme 2:2 (2 langkah ambil napas, 2 langkah hembuskan). Jangan menahan napas saat intensitas tinggi, dan biasakan menghirup dari hidung serta menghembuskan dari mulut.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-800/70 border border-slate-800 space-y-1.5">
+            <div class="flex items-center gap-2 text-blue-400 font-semibold text-sm">
+              <i class="fa-solid fa-shoe-prints"></i>
+              <h4>Pendaratan Kaki & Postur</h4>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Mendaratlah dengan bagian tengah telapak kaki (midfoot), bukan tumit lurus membentur tanah. Jaga bahu tetap santai, dada terbuka, dan pandangan 5-10 meter ke depan.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-800/70 border border-slate-800 space-y-1.5">
+            <div class="flex items-center gap-2 text-cyan-400 font-semibold text-sm">
+              <i class="fa-solid fa-bottle-water"></i>
+              <h4>Hidrasi & Pemulihan</h4>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Minumlah 200-300 ml air putih 20 menit sebelum mulai latihan. Jika latihan lebih dari 30 menit, sediakan tegukan kecil di jeda istirahat untuk menjaga sirkulasi darah tetap prima.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-800/70 border border-slate-800 space-y-1.5">
+            <div class="flex items-center gap-2 text-amber-400 font-semibold text-sm">
+              <i class="fa-solid fa-shield-heart"></i>
+              <h4>Mencegah Kram & Nyeri Otot</h4>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Jangan pernah melewatkan pemanasan dinamis dan pendinginan statis minimal 3-5 menit. Ini membantu menurunkan detak jantung secara bertahap dan mencegah pusing setelah lari cepat.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Custom Modal/Dialog Box (Non-Alert) -->
+    <div id="app-modal" class="hidden absolute inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-6">
+      <div class="w-full max-w-xs bg-slate-900 border border-slate-700 p-5 rounded-3xl shadow-2xl text-center space-y-3">
+        <div id="modal-icon" class="w-12 h-12 mx-auto rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-flag-checkered"></i>
+        </div>
+        <h4 id="modal-title" class="text-base font-bold text-white">Latihan Selesai!</h4>
+        <p id="modal-message" class="text-xs text-slate-300">Kerja luar biasa! Anda telah menyelesaikan semua putaran.</p>
+        <div class="flex gap-2 pt-2" id="modal-buttons">
+          <button onclick="closeModal()" class="w-full py-2.5 rounded-xl bg-blue-600 font-semibold text-xs text-white hover:bg-blue-500">Tutup</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation Bar (iOS Style) -->
+    <nav class="absolute bottom-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around px-2 z-30">
+      <button onclick="switchTab('programs')" id="nav-programs" class="flex flex-col items-center gap-1 text-blue-500 transition">
+        <i class="fa-solid fa-dumbbell text-base"></i>
+        <span class="text-[10px] font-medium">Program</span>
+      </button>
+
+      <button onclick="switchTab('active-workout')" id="nav-active" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+        <div class="relative">
+          <i class="fa-solid fa-heart-pulse text-base"></i>
+          <span id="active-nav-dot" class="hidden absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400"></span>
+        </div>
+        <span class="text-[10px] font-medium">Sesi Coach</span>
+      </button>
+
+      <button onclick="switchTab('stats')" id="nav-stats" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+        <i class="fa-solid fa-chart-simple text-base"></i>
+        <span class="text-[10px] font-medium">Catatan</span>
+      </button>
+
+      <button onclick="switchTab('tips')" id="nav-tips" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+        <i class="fa-solid fa-lightbulb text-base"></i>
+        <span class="text-[10px] font-medium">Tips</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <script>
+    /* =========================================================
+       PROGRAM DATABASE
+       ========================================================= */
+    const WORKOUT_PROGRAMS = [
+      {
+        id: 'run-cardio-beginner',
+        title: 'Interval Lari & Kardio Pemula',
+        subtitle: 'Kombinasi lari & kardio ringan untuk stamina',
+        duration: '15 Menit',
+        level: 'Pemula',
+        tagColor: 'from-blue-500 to-cyan-500',
+        caloriesEst: 140,
+        steps: [
+          { phase: 'Pemanasan', activity: 'Jalan Santai di Tempat', duration: 30, cue: 'Mulai pemanasan. Gerakkan tangan dan jalan santai di tempat.' },
+          { phase: 'Pemanasan', activity: 'High Knees Ringan', duration: 30, cue: 'Angkat lutut setinggi pinggang secara berirama.' },
+          { phase: 'Latihan', activity: 'Jogging Santai', duration: 45, cue: 'Mulai lari pelan santai. Atur napas ritmis dua banding dua.' },
+          { phase: 'Latihan', activity: 'Jumping Jacks', duration: 30, cue: 'Beralih ke jumping jacks! Buka kaki dan tepuk tangan di atas kepala.' },
+          { phase: 'Istirahat', activity: 'Tarik Napas & Jalan Santai', duration: 25, cue: 'Waktu istirahat. Tarik napas panjang dari hidung.' },
+          { phase: 'Latihan', activity: 'Jogging Sedang', duration: 45, cue: 'Tingkatkan sedikit kecepatan larimu. Tetap rileks.' },
+          { phase: 'Latihan', activity: 'Bodyweight Squats', duration: 30, cue: 'Lakukan squat teratur. Jaga punggung tetap tegap lurus.' },
+          { phase: 'Istirahat', activity: 'Pemulihan Denyut Nadi', duration: 25, cue: 'Ambil napas teratur, rilekskan kedua pundak.' },
+          { phase: 'Latihan', activity: 'Lari Cepat (Fast Run)', duration: 40, cue: 'Ayo lari lebih cepat! Kerahkan tenaga terbaikmu!' },
+          { phase: 'Pendinginan', activity: 'Peregangan Statis & Jalan Pelan', duration: 45, cue: 'Bagus sekali! Waktunya pendinginan dan peregangan kaki.' }
+        ]
+      },
+      {
+        id: 'fat-burn-cardio',
+        title: 'Kardio Pembakar Lemak HIIT',
+        subtitle: 'Intensitas tinggi memacu detak jantung & metabolisme',
+        duration: '12 Menit',
+        level: 'Menengah',
+        tagColor: 'from-orange-500 to-rose-500',
+        caloriesEst: 175,
+        steps: [
+          { phase: 'Pemanasan', activity: 'Arm Circles & Leg Swings', duration: 30, cue: 'Pemanasan sendi bahu dan ayunan kaki.' },
+          { phase: 'Latihan', activity: 'High Knees Cepat', duration: 30, cue: 'Ayo high knees cepat! Dorong lutut naik tinggi!' },
+          { phase: 'Latihan', activity: 'Butt Kicks', duration: 30, cue: 'Ayunkan tumit ke arah pantat secepat mungkin!' },
+          { phase: 'Istirahat', activity: 'Istirahat Aktif', duration: 20, cue: 'Tarik napas, hembuskan perlahan.' },
+          { phase: 'Latihan', activity: 'Sprint di Tempat', duration: 30, cue: 'Sprint maksimal! Gerakkan kaki secepat kilat!' },
+          { phase: 'Latihan', activity: 'Squat Jumps / Squats', duration: 30, cue: 'Turun ke posisi squat dan dorong ke atas!' },
+          { phase: 'Istirahat', activity: 'Minum & Tarik Napas', duration: 25, cue: 'Istirahat 25 detik. Siapkan putaran akhir.' },
+          { phase: 'Latihan', activity: 'Mountain Climbers', duration: 35, cue: 'Posisi push-up, tarik lutut bergantian ke dada!' },
+          { phase: 'Pendinginan', activity: 'Deep Breathing & Hamstring Stretch', duration: 40, cue: 'Tarik napas dalam-dalam. Regangkan paha belakang.' }
+        ]
+      },
+      {
+        id: 'endurance-core-run',
+        title: 'Lari Ketahanan & Core Perut',
+        subtitle: 'Membangun postur lari kokoh & otot inti kuat',
+        duration: '18 Menit',
+        level: 'Lanjutan',
+        tagColor: 'from-emerald-500 to-teal-600',
+        caloriesEst: 190,
+        steps: [
+          { phase: 'Pemanasan', activity: 'Jalan Cepat & Hip Opener', duration: 40, cue: 'Pemanasan pembuka panggul dan jalan cepat.' },
+          { phase: 'Latihan', activity: 'Lari Ritme Stabil (Paced Run)', duration: 60, cue: 'Jaga kecepatan konstan yang nyaman selama satu menit.' },
+          { phase: 'Latihan', activity: 'Plank Hold', duration: 30, cue: 'Kunci otot perutmu. Tubuh lurus sejajar.' },
+          { phase: 'Istirahat', activity: 'Istirahat Sejenak', duration: 20, cue: 'Istirahat 20 detik, siapkan tenaga berikutnya.' },
+          { phase: 'Latihan', activity: 'Lari Cepat 45 Detik', duration: 45, cue: 'Tingkatkan laju langkahmu sekarang juga!' },
+          { phase: 'Latihan', activity: 'Bicycle Crunches', duration: 35, cue: 'Sentuhkan siku ke lutut berlawanan dengan ritme stabil.' },
+          { phase: 'Istirahat', activity: 'Relaksasi Napas', duration: 20, cue: 'Atur kembali denyut nadi.' },
+          { phase: 'Latihan', activity: 'Jogging Pemulihan Terarah', duration: 50, cue: 'Lari pelan dengan postur dada tegap terbuka.' },
+          { phase: 'Pendinginan', activity: 'Peregangan Betis & Tulang Belakang', duration: 40, cue: 'Selesai! Lakukan peregangan pinggang dan betis.' }
+        ]
+      }
+    ];
+
+    /* =========================================================
+       APPLICATION STATE
+       ========================================================= */
+    let currentProgram = null;
+    let currentStepIndex = 0;
+    let stepTimeRemaining = 0;
+    let totalWorkoutSeconds = 0;
+    let workoutTimerInterval = null;
+    let isPaused = false;
+    let isVoiceEnabled = true;
+
+    // Radius for circle timer SVG
+    const CIRCLE_RADIUS = 110;
+    const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
+
+    /* =========================================================
+       INITIALIZATION
+       ========================================================= */
+    window.onload = function() {
+      // Setup circular SVG
+      const circle = document.getElementById('timer-progress');
+      if (circle) {
+        circle.style.strokeDasharray = `${CIRCLE_CIRCUMFERENCE} ${CIRCLE_CIRCUMFERENCE}`;
+        circle.style.strokeDashoffset = '0';
+      }
+      
+      renderProgramCards();
+      renderStats();
+    };
+
+    /* =========================================================
+       AUDIO & SPEECH SYNTHESIS COACH
+       ========================================================= */
+    function toggleVoiceCoach() {
+      isVoiceEnabled = !isVoiceEnabled;
+      const icon = document.getElementById('voice-icon');
+      if (isVoiceEnabled) {
+        icon.className = 'fa-solid fa-volume-high text-xs text-blue-400';
+        speakVoice("Suara pelatih aktif.");
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark text-xs text-slate-500';
+      }
+    }
+
+    function speakVoice(text) {
+      if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel(); // Stop any pending speech
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'id-ID';
+        utterance.rate = 1.05;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.warn("Speech synthesis error:", e);
+      }
+    }
+
+    function playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // 880 Hz
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      } catch (e) {}
+    }
+
+    /* =========================================================
+       VIEW NAVIGATION
+       ========================================================= */
+    function switchTab(tabName) {
+      const tabs = ['programs', 'active-workout', 'stats', 'tips'];
+      tabs.forEach(t => {
+        const viewEl = document.getElementById(`view-${t}`);
+        const navEl = document.getElementById(`nav-${t.replace('active-workout', 'active')}`);
+        
+        if (t === tabName) {
+          viewEl.classList.remove('hidden');
+          if (t === 'active-workout') viewEl.classList.add('flex');
+          if (navEl) {
+            navEl.classList.remove('text-slate-400');
+            navEl.classList.add('text-blue-500');
+          }
+        } else {
+          viewEl.classList.add('hidden');
+          if (t === 'active-workout') viewEl.classList.remove('flex');
+          if (navEl) {
+            navEl.classList.add('text-slate-400');
+            navEl.classList.remove('text-blue-500');
+          }
+        }
+      });
+
+      if (tabName === 'stats') {
+        renderStats();
+      }
+    }
+
+    /* =========================================================
+       WORKOUT PROGRAM RENDERING
+       ========================================================= */
+    function renderProgramCards() {
+      const container = document.getElementById('programs-list');
+      container.innerHTML = '';
+
+      WORKOUT_PROGRAMS.forEach((prog, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-800/80 border border-slate-700/60 p-4 rounded-3xl hover:border-slate-600 transition flex flex-col justify-between space-y-3";
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md border border-slate-800">${prog.level}</span>
+              <h4 class="text-base font-bold text-white mt-1">${prog.title}</h4>
+              <p class="text-xs text-slate-400">${prog.subtitle}</p>
+            </div>
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr ${prog.tagColor} flex items-center justify-center text-white shadow-md">
+              <i class="fa-solid fa-person-running"></i>
+            </div>
+          </div>
+          
+          <div class="flex items-center justify-between pt-2 border-t border-slate-700/40 text-xs text-slate-300">
+            <div class="flex items-center gap-3">
+              <span class="flex items-center gap-1"><i class="fa-regular fa-clock text-blue-400"></i> ${prog.duration}</span>
+              <span class="flex items-center gap-1"><i class="fa-solid fa-fire text-orange-400"></i> ~${prog.caloriesEst} kcal</span>
+            </div>
+            <button onclick="startSpecificWorkout(${idx})" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 active:scale-95 transition">
+              Mulai <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    /* =========================================================
+       WORKOUT ENGINE & TIMERS
+       ========================================================= */
+    function startSpecificWorkout(index) {
+      currentProgram = WORKOUT_PROGRAMS[index];
+      currentStepIndex = 0;
+      totalWorkoutSeconds = 0;
+      isPaused = false;
+
+      // Update UI Header
+      document.getElementById('active-program-name').textContent = currentProgram.title;
+      document.getElementById('active-nav-dot').classList.remove('hidden');
+
+      loadStep(currentStepIndex);
+      switchTab('active-workout');
+
+      // Start tick loop
+      if (workoutTimerInterval) clearInterval(workoutTimerInterval);
+      workoutTimerInterval = setInterval(timerTick, 1000);
+
+      speakVoice(`Memulai program ${currentProgram.title}. ${currentProgram.steps[0].cue}`);
+    }
+
+    function loadStep(index) {
+      if (!currentProgram || index >= currentProgram.steps.length) {
+        finishWorkout();
+        return;
+      }
+      currentStepIndex = index;
+      const step = currentProgram.steps[currentStepIndex];
+      stepTimeRemaining = step.duration;
+
+      // Updates
+      document.getElementById('active-phase-step').textContent = `Langkah ${currentStepIndex + 1} dari ${currentProgram.steps.length}`;
+      document.getElementById('timer-activity').textContent = step.activity;
+      document.getElementById('coach-instruction').textContent = step.cue;
+      
+      const statusEl = document.getElementById('timer-status');
+      statusEl.textContent = step.phase;
+
+      // Adjust color depending on phase
+      const progressRing = document.getElementById('timer-progress');
+      if (step.phase.toLowerCase().includes('istirahat')) {
+        statusEl.className = 'text-sm font-bold text-amber-400 mt-1 uppercase tracking-wider';
+        progressRing.className = 'text-amber-400 progress-ring__circle';
+      } else if (step.phase.toLowerCase().includes('pendinginan')) {
+        statusEl.className = 'text-sm font-bold text-cyan-400 mt-1 uppercase tracking-wider';
+        progressRing.className = 'text-cyan-400 progress-ring__circle';
+      } else if (step.phase.toLowerCase().includes('pemanasan')) {
+        statusEl.className = 'text-sm font-bold text-emerald-400 mt-1 uppercase tracking-wider';
+        progressRing.className = 'text-emerald-400 progress-ring__circle';
+      } else {
+        statusEl.className = 'text-sm font-bold text-blue-400 mt-1 uppercase tracking-wider';
+        progressRing.className = 'text-blue-500 progress-ring__circle';
+      }
+
+      updateTimerDisplay();
+      updateRemainingStepsBadge();
+    }
+
+    function timerTick() {
+      if (isPaused) return;
+
+      totalWorkoutSeconds++;
+      stepTimeRemaining--;
+
+      updateTimerDisplay();
+
+      // Countdown audio cues on last 3 seconds
+      if (stepTimeRemaining <= 3 && stepTimeRemaining > 0) {
+        playBeep();
+      }
+
+      if (stepTimeRemaining <= 0) {
+        // Next step
+        currentStepIndex++;
+        if (currentStepIndex < currentProgram.steps.length) {
+          const nextStep = currentProgram.steps[currentStepIndex];
+          speakVoice(`${nextStep.phase}. ${nextStep.activity}. ${nextStep.cue}`);
+          loadStep(currentStepIndex);
+        } else {
+          finishWorkout();
+        }
+      }
+    }
+
+    function updateTimerDisplay() {
+      // Step Timer
+      const mins = Math.floor(stepTimeRemaining / 60);
+      const secs = stepTimeRemaining % 60;
+      document.getElementById('timer-label').textContent = 
+        `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+      // Ring Offset
+      const currentStep = currentProgram.steps[currentStepIndex];
+      const fraction = (currentStep.duration - stepTimeRemaining) / currentStep.duration;
+      const offset = CIRCLE_CIRCUMFERENCE - (fraction * CIRCLE_CIRCUMFERENCE);
+      document.getElementById('timer-progress').style.strokeDashoffset = offset;
+
+      // Total Timer
+      const tMins = Math.floor(totalWorkoutSeconds / 60);
+      const tSecs = totalWorkoutSeconds % 60;
+      document.getElementById('live-total-time').textContent = 
+        `${String(tMins).padStart(2, '0')}:${String(tSecs).padStart(2, '0')}`;
+
+      // Burn Calories approx (10 kcal per minute moderate HIIT/Cardio)
+      const approxCals = Math.round((totalWorkoutSeconds / 60) * 11);
+      document.getElementById('live-calories').textContent = `${approxCals} kcal`;
+    }
+
+    function updateRemainingStepsBadge() {
+      if (!currentProgram) return;
+      const left = currentProgram.steps.length - (currentStepIndex + 1);
+      document.getElementById('live-remaining-intervals').textContent = `${left} lagi`;
+    }
+
+    function togglePauseResume() {
+      isPaused = !isPaused;
+      const icon = document.getElementById('play-pause-icon');
+      if (isPaused) {
+        icon.className = 'fa-solid fa-play text-xl';
+        speakVoice("Latihan dijeda.");
+      } else {
+        icon.className = 'fa-solid fa-pause text-xl';
+        speakVoice("Latihan dilanjutkan.");
+      }
+    }
+
+    function skipStep() {
+      if (!currentProgram) return;
+      currentStepIndex++;
+      if (currentStepIndex < currentProgram.steps.length) {
+        const nextStep = currentProgram.steps[currentStepIndex];
+        speakVoice(`Langkah dilewati. Lanjut ke ${nextStep.activity}.`);
+        loadStep(currentStepIndex);
+      } else {
+        finishWorkout();
+      }
+    }
+
+    function stopWorkoutPrompt() {
+      showModal({
+        icon: '<i class="fa-solid fa-triangle-exclamation text-amber-400"></i>',
+        title: 'Hentikan Sesi?',
+        message: 'Apakah Anda yakin ingin mengakhiri sesi latihan saat ini lebih awal?',
+        buttons: `
+          <button onclick="closeModal()" class="w-1/2 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300">Lanjut</button>
+          <button onclick="confirmStopWorkout()" class="w-1/2 py-2 rounded-xl bg-rose-600 text-xs font-semibold text-white">Akhiri</button>
+        `
+      });
+    }
+
+    function confirmStopWorkout() {
+      closeModal();
+      clearInterval(workoutTimerInterval);
+      workoutTimerInterval = null;
+      document.getElementById('active-nav-dot').classList.add('hidden');
+      switchTab('programs');
+    }
+
+    function finishWorkout() {
+      clearInterval(workoutTimerInterval);
+      workoutTimerInterval = null;
+      document.getElementById('active-nav-dot').classList.add('hidden');
+
+      const burned = Math.round((totalWorkoutSeconds / 60) * 11);
+      const minutesSpent = Math.max(1, Math.round(totalWorkoutSeconds / 60));
+
+      // Save to localStorage
+      saveWorkoutLog({
+        title: currentProgram.title,
+        durationSeconds: totalWorkoutSeconds,
+        durationMinutes: minutesSpent,
+        calories: burned,
+        date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+      });
+
+      speakVoice("Luar biasa! Sesi latihan Anda telah selesai dengan sangat baik.");
+
+      showModal({
+        icon: '<i class="fa-solid fa-award text-emerald-400"></i>',
+        title: 'Sesi Selesai! 🎉',
+        message: `Hebat! Anda menyelesaikan latihan selama ${minutesSpent} menit dan membakar sekitar ${burned} kalori.`,
+        buttons: `
+          <button onclick="goToStatsAfterFinish()" class="w-full py-2.5 rounded-xl bg-emerald-600 font-bold text-xs text-white">Lihat Catatan Kebugaran</button>
+        `
+      });
+    }
+
+    function goToStatsAfterFinish() {
+      closeModal();
+      switchTab('stats');
+    }
+
+    /* =========================================================
+       LOCAL STORAGE & STATS
+       ========================================================= */
+    const STORAGE_KEY = 'aerocoach_history_data';
+
+    function getWorkoutHistory() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveWorkoutLog(logItem) {
+      const history = getWorkoutHistory();
+      history.unshift(logItem); // Add latest to front
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    }
+
+    function renderStats() {
+      const history = getWorkoutHistory();
+
+      let totalCals = 0;
+      let totalMins = 0;
+      history.forEach(item => {
+        totalCals += item.calories || 0;
+        totalMins += item.durationMinutes || 0;
+      });
+
+      document.getElementById('stat-total-cals').textContent = `${totalCals} kcal`;
+      document.getElementById('stat-total-mins').textContent = `${totalMins} mnt`;
+      document.getElementById('stat-total-workouts').textContent = `${history.length} Sesi`;
+
+      const listContainer = document.getElementById('history-container');
+      listContainer.innerHTML = '';
+
+      if (history.length === 0) {
+        listContainer.innerHTML = `
+          <div class="text-center py-8 text-slate-500">
+            <i class="fa-solid fa-clipboard-list text-3xl mb-2 block"></i>
+            <p class="text-xs">Belum ada aktivitas. Mulai sesi latihan sekarang!</p>
+          </div>
+        `;
+        return;
+      }
+
+      history.forEach(item => {
+        const row = document.createElement('div');
+        row.className = "bg-slate-800/60 border border-slate-800 p-3 rounded-2xl flex items-center justify-between";
+        row.innerHTML = `
+          <div>
+            <h5 class="text-xs font-bold text-white">${item.title}</h5>
+            <span class="text-[10px] text-slate-400">${item.date}</span>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-bold text-emerald-400 block">${item.calories} kcal</span>
+            <span class="text-[10px] text-slate-400">${item.durationMinutes} Menit</span>
+          </div>
+        `;
+        listContainer.appendChild(row);
+      });
+    }
+
+    function clearHistory() {
+      showModal({
+        icon: '<i class="fa-solid fa-trash-can text-rose-400"></i>',
+        title: 'Hapus Catatan?',
+        message: 'Apakah Anda ingin menghapus seluruh log riwayat aktivitas latihan?',
+        buttons: `
+          <button onclick="closeModal()" class="w-1/2 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300">Batal</button>
+          <button onclick="confirmClearHistory()" class="w-1/2 py-2 rounded-xl bg-rose-600 text-xs font-semibold text-white">Hapus</button>
+        `
+      });
+    }
+
+    function confirmClearHistory() {
+      localStorage.removeItem(STORAGE_KEY);
+      renderStats();
+      closeModal();
+    }
+
+    /* =========================================================
+       POPUP MODAL
+       ========================================================= */
+    function showModal({ icon, title, message, buttons }) {
+      const modal = document.getElementById('app-modal');
+      document.getElementById('modal-icon').innerHTML = icon;
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-message').textContent = message;
+      document.getElementById('modal-buttons').innerHTML = buttons;
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('app-modal').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
